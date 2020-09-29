@@ -1,3 +1,8 @@
+# Files created by app during run time:
+/*.log.txt
+/*.log.csv
+/.json
+
 *.swp
 *.*~
 project.lock.json

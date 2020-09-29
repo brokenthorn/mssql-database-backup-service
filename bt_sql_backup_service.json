@@ -1,0 +1,10 @@
+[
+    {
+        "name": "Backup Full la DATABASE_NAME",
+        "description": "Backup Full la DATABASE_NAME, zilnic la ora 3:00:00, pe diskul local in 'D:\\sqlbackups\\test'.",
+        "connectionString": "Server=127.0.0.1,1443;Connection Timeout=5;Database=DATABASE_NAME;User Id=USERNAME;Password=PASSWORD",
+        "sqlCommand": "EXECUTE [master].[dbo].[DatabaseBackup] @Databases = 'DATABASE_NAME,DATABASE_NAME', @Directory = N'D:\\sqlbackups\\test', @BackupType = 'FULL', @CleanupTime = 24, @CopyOnly = 'Y', @MaxTransferSize = 4194304, @BlockSize = 65536, @BufferCount = 50, @Compress = 'Y', @CheckSum = 'N', @Verify = 'N', @LogToTable = 'N';",
+        "commandTimeout": 10800,
+        "cron": "0 0 3 ? * * *"
+    }
+]
