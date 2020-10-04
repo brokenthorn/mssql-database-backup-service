@@ -5,14 +5,17 @@
     <TargetFramework>netcoreapp3.1</TargetFramework>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <PublishSingleFile>true</PublishSingleFile>
-    <IncludeSymbolsInSingleFile>true</IncludeSymbolsInSingleFile>
     <PublishReadyToRun>true</PublishReadyToRun>
+    <IncludeSymbolsInSingleFile>true</IncludeSymbolsInSingleFile>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Data.SqlClient" Version="2.0.1" />
     <PackageReference Include="Microsoft.Data.SqlClient.SNI.runtime" Version="2.1.0" />
+    <PackageReference Include="Microsoft.Data.SqlClient" Version="2.0.1" />
+    <PackageReference Include="Quartz" Version="3.1.0" />
     <PackageReference Include="Topshelf" Version="4.2.1" />
+
+    <None Update="quartz.config" CopyToOutputDirectory="Always" />
   </ItemGroup>
 
 </Project>
