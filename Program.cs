@@ -158,6 +158,7 @@ namespace bt_sql_backup_service
            hostConfigurator.Service<BtSqlBackupService>();
            hostConfigurator.RunAsNetworkService();
            hostConfigurator.StartAutomatically();
+           hostConfigurator.SetStartTimeout(TimeSpan.FromSeconds(60));
            hostConfigurator.SetDisplayName(Constants.displayName);
            hostConfigurator.SetServiceName(Constants.serviceName);
            hostConfigurator.SetDescription(Constants.description);
