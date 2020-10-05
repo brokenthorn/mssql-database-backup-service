@@ -125,8 +125,7 @@ namespace bt_sql_backup_service
     public bool Start(HostControl hostControl)
     {
       var startTask = this.StartAsync(hostControl);
-      startTask.Wait();
-      return startTask.Result;
+      return true;
     }
 
     private async Task<bool> StopAsync(HostControl hostControl)

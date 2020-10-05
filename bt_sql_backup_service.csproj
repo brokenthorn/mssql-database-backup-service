@@ -2,11 +2,10 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
+    <ApplicationVersion>0.1</ApplicationVersion>
+    <Version>0.1</Version>
     <TargetFramework>netcoreapp3.1</TargetFramework>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
-    <PublishSingleFile>true</PublishSingleFile>
-    <PublishReadyToRun>true</PublishReadyToRun>
-    <IncludeSymbolsInSingleFile>true</IncludeSymbolsInSingleFile>
   </PropertyGroup>
 
   <ItemGroup>
@@ -16,6 +15,7 @@
     <PackageReference Include="Topshelf" Version="4.2.1" />
 
     <None Update="quartz.config" CopyToOutputDirectory="Always" />
+    <None Update="bt_sql_backup_service.json" CopyToOutputDirectory="Always" />
   </ItemGroup>
 
 </Project>
