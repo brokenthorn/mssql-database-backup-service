@@ -29,6 +29,7 @@ namespace bt_sql_backup_service
       this.settingsFileDirectory = Path.GetDirectoryName(this.settingsFilePath);
       this.logFilePath = Path.Combine(this.appDirectory, $"{Constants.serviceName}.log.csv");
 
+      Trace.AutoFlush = true;
       this.trace = new TraceSource("BtSqlBackupService");
 
       var sourceSwitch = new SourceSwitch("BtSqlBackupService", "Verbose");
@@ -45,12 +46,9 @@ namespace bt_sql_backup_service
       fileTraceListener.TraceOutputOptions = TraceOptions.DateTime | TraceOptions.ProcessId | TraceOptions.ThreadId;
       this.trace.Listeners.Add(fileTraceListener);
 
-      this.trace.TraceInformation($"New instance of {this.GetType().Name}");
-
       StdSchedulerFactory factory = new StdSchedulerFactory();
       var getSchedulerTask = factory.GetScheduler();
-      getSchedulerTask.Wait();
-      this.scheduler = getSchedulerTask.Result;
+      this.scheduler = getSchedulerTask.GetAwaiter().GetResult();
     }
 
     /// <summary>
@@ -124,7 +122,7 @@ namespace bt_sql_backup_service
 
     public bool Start(HostControl hostControl)
     {
-      var startTask = this.StartAsync(hostControl);
+      Task.Run<bool>(() => this.StartAsync(hostControl));
       return true;
     }
 
@@ -138,8 +136,7 @@ namespace bt_sql_backup_service
     public bool Stop(HostControl hostControl)
     {
       var stopTask = this.StopAsync(hostControl);
-      stopTask.Wait();
-      return stopTask.Result;
+      return stopTask.GetAwaiter().GetResult();
     }
 
     public void Dispose()
