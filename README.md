@@ -47,7 +47,7 @@ I plan to gradually add new functionality to this service over time. Check the T
    messages outputted directly to the console by just calling the executable
    with no arguments.
 
-More command line arguments are availabl. Read the
+More command line arguments are available. Read the
 [Topshelf](http://topshelf-project.com/) project documentation.
 
 ## The `sql_commands.json` file
