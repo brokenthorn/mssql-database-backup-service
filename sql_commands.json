@@ -1,0 +1,18 @@
+[
+  {
+    "name": "Full backup of user databases",
+    "description": "Performs full backups to local disk, at 3:00 AM, for all user databases, using Ola Hallengren's DatabaseBackup procedure. After it's finished, it deletes backups older than 24h.",
+    "connectionString": "Server=127.0.0.1,1443;Connection Timeout=10;Database=master;User Id=USERNAME;Password=PASSWORD",
+    "sqlCommand": "EXECUTE [master].[dbo].[DatabaseBackup] @Databases = 'USER_DATABASES', @Directory = N'D:\\sqlbackups', @BackupType = 'FULL', @CleanupTime = 24, @CopyOnly = 'N', @MaxTransferSize = 4194304, @BufferCount = 25, @Compress = 'N', @CheckSum = 'Y', @Verify = 'N', @LogToTable = 'Y';",
+    "commandTimeout": 10800,
+    "cron": "0 0 3 ? * * *"
+  },
+  {
+    "name": "Diff backup of user databases",
+    "description": "Performs diff backups to local disk, every 2 hours from 10 AM to 10 PM, for all user databases, using Ola Hallengren's DatabaseBackup procedure. After it's finished, it deletes backups older than 24h.",
+    "connectionString": "Server=127.0.0.1,1443;Connection Timeout=10;Database=master;User Id=USERNAME;Password=PASSWORD",
+    "sqlCommand": "EXECUTE [master].[dbo].[DatabaseBackup] @Databases = 'USER_DATABASES', @Directory = N'D:\\sqlbackups', @BackupType = 'DIFF', @CleanupTime = 24, @CopyOnly = 'N', @MaxTransferSize = 4194304, @BufferCount = 25, @Compress = 'N', @CheckSum = 'Y', @Verify = 'N', @LogToTable = 'Y';",
+    "commandTimeout": 10800,
+    "cron": "0 0 10,12,14,16,18,20 ? * * *"
+  }
+]

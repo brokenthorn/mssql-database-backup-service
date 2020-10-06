@@ -1,57 +1,51 @@
 using Microsoft.Data.SqlClient;
+using Microsoft.Extensions.Logging;
 using Quartz;
 using System;
-using System.Diagnostics;
 using System.Threading.Tasks;
 
 namespace bt_sql_backup_service
 {
+  /// <summary>
+  /// A job that runs a SQL command as defined by an instance of a <see
+  /// cref="SchedulableSQLCommand">SchedulableSQLCommand</see>.
+  /// </summary>
+  /// <remarks>
+  /// The instance of <see cref="SchedulableSQLCommand">SchedulableSQLCommand</see>
+  /// must be passed via the job execution context object.
+  /// </remarks>
   public class RunSqlCommandJob : IJob
   {
     public async Task Execute(IJobExecutionContext context)
     {
-      SQLCommandJob cmd = (SQLCommandJob)context.JobDetail.JobDataMap.Get("sqlCommand");
-      TraceSource trace = (TraceSource)context.JobDetail.JobDataMap.Get("trace");
-
-      if (cmd == null || trace == null)
+      SchedulableSQLCommand command = (SchedulableSQLCommand)context.JobDetail.JobDataMap.Get("command");
+      ILogger logger = (ILogger)context.JobDetail.JobDataMap.Get("logger");
+      if (command == null)
       {
-        await Console.Error.WriteLineAsync("Refuz sa execut taskul din `RunSqlCommandJob` cu date ce lipsesc din context.");
+        logger?.LogError("Failed to execute a job. The JobDataMap returned a null value for the key 'command'.");
         return;
       }
 
-      trace.TraceInformation($"Se executa un task (Name='{cmd.Name}', SqlCommand='{cmd.SqlCommand}').");
-
-      using (SqlConnection connection = new SqlConnection(cmd.ConnectionString))
+      logger?.LogInformation($"Executing job '{command.Name}': {command.Description}");
+      using (SqlConnection connection = new SqlConnection(command.ConnectionString))
       {
         try
         {
           await connection.OpenAsync();
-
           using (SqlCommand sqlCommand = connection.CreateCommand())
           {
             sqlCommand.CommandType = System.Data.CommandType.Text;
-            sqlCommand.CommandText = cmd.SqlCommand;
-            sqlCommand.CommandTimeout = cmd.CommandTimeout;
+            sqlCommand.CommandText = command.SqlCommand;
+            sqlCommand.CommandTimeout = command.CommandTimeout;
 
             int rowsAffected = await sqlCommand.ExecuteNonQueryAsync();
-            trace.TraceInformation($"S-a executat taskul (Name='{cmd.Name}'). Randuri afectate = {rowsAffected}.");
-
-            // using (SqlDataReader dataReader = await sqlCommand.ExecuteReaderAsync())
-            // {
-            //   while (await dataReader.ReadAsync())
-            //   {
-            //     for (int i = 0; i < dataReader.FieldCount; i++)
-            //     {
-            //       var value = dataReader.GetValue(i);
-            //       trace.TraceInformation($"[SQLCommandJob.Name={cmd.Name}] Value={value}");
-            //     }
-            //   }
-            // }
+            logger?.LogInformation($"Finished executing job '{command.Name}'. {rowsAffected} rows affected.");
           }
         }
         catch (System.Exception e)
         {
-          trace.TraceEvent(TraceEventType.Error, 0, $"Eroare executing un task (Name='{cmd.Name}'): {e.Message}");
+          var message = e.Message.Replace("\r\n", " ").Replace('\n', ' ');
+          logger.LogError($"Error while executing job '{command.Name}': {message}");
         }
       }
     }

@@ -9,13 +9,17 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="MailKit" Version="2.9.0" />
     <PackageReference Include="Microsoft.Data.SqlClient.SNI.runtime" Version="2.1.0" />
     <PackageReference Include="Microsoft.Data.SqlClient" Version="2.0.1" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="3.1.8" />
+    <PackageReference Include="Microsoft.Extensions.Logging.EventLog" Version="3.1.8" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="3.1.8" />
     <PackageReference Include="Quartz" Version="3.1.0" />
     <PackageReference Include="Topshelf" Version="4.2.1" />
 
     <None Update="quartz.config" CopyToOutputDirectory="Always" />
-    <None Update="bt_sql_backup_service.json" CopyToOutputDirectory="Always" />
+    <None Update="sql_commands.json" CopyToOutputDirectory="Always" />
   </ItemGroup>
 
 </Project>

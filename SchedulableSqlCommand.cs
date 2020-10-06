@@ -1,12 +1,9 @@
-using System;
-
 namespace bt_sql_backup_service
 {
   /// <summary>
-  /// Model class for a scheduled SQL command.
+  /// Model class for a schedulable SQL command.
   /// </summary>
-  [Serializable]
-  public class SQLCommandJob
+  public class SchedulableSQLCommand
   {
     /// <summary>
     /// A short name for this command.

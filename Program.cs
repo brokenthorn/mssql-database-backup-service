@@ -1,10 +1,8 @@
-﻿#define TRACE
-
+﻿using Microsoft.Extensions.Logging;
 using Quartz;
 using Quartz.Impl;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -12,79 +10,73 @@ using Topshelf;
 
 namespace bt_sql_backup_service
 {
-  public class BtSqlBackupService : ServiceControl, IDisposable
+  public class BtSqlBackupService : ServiceControl
   {
-    private readonly string appDirectory = Directory.GetCurrentDirectory();
-    private readonly string logFilePath;
-    private readonly string settingsFileDirectory;
-    private readonly string settingsFilePath;
-
+    private readonly string appDirectoryPath;
+    private readonly string sqlCommandsFilePath;
     private readonly IScheduler scheduler;
-    private readonly List<SQLCommandJob> sqlCommands = new List<SQLCommandJob>();
-    private readonly TraceSource trace;
+    private readonly List<SchedulableSQLCommand> sqlCommands;
+    private readonly ILogger logger;
 
     public BtSqlBackupService()
     {
-      this.settingsFilePath = Path.Combine(this.appDirectory, $"{Constants.serviceName}.json");
-      this.settingsFileDirectory = Path.GetDirectoryName(this.settingsFilePath);
-      this.logFilePath = Path.Combine(this.appDirectory, $"{Constants.serviceName}.log.csv");
-
-      Trace.AutoFlush = true;
-      this.trace = new TraceSource("BtSqlBackupService");
-
-      var sourceSwitch = new SourceSwitch("BtSqlBackupService", "Verbose");
-      sourceSwitch.Level = SourceLevels.Verbose;
-      this.trace.Switch = sourceSwitch;
-
-      var consoleTraceListener = new ConsoleTraceListener();
-      consoleTraceListener.Name = "console";
-      consoleTraceListener.TraceOutputOptions = TraceOptions.DateTime | TraceOptions.ProcessId | TraceOptions.ThreadId;
-      this.trace.Listeners.Add(consoleTraceListener);
-
-      var fileTraceListener = new DelimitedListTraceListener(this.logFilePath, "logFile");
-      fileTraceListener.Name = "logFile";
-      fileTraceListener.TraceOutputOptions = TraceOptions.DateTime | TraceOptions.ProcessId | TraceOptions.ThreadId;
-      this.trace.Listeners.Add(fileTraceListener);
-
-      StdSchedulerFactory factory = new StdSchedulerFactory();
-      var getSchedulerTask = factory.GetScheduler();
-      this.scheduler = getSchedulerTask.GetAwaiter().GetResult();
+      var loggerFactory = LoggerFactory.Create(builder =>
+      {
+        builder.AddFilter("Microsoft", LogLevel.Warning)
+               .AddFilter("System", LogLevel.Warning)
+               .AddFilter("bt_sql_backup_service.BtSqlBackupService", LogLevel.Debug)
+               .AddFilter("Default", LogLevel.Information)
+               .AddConsole(opt =>
+               {
+                 opt.TimestampFormat = "dd-MM-yyyy H:mm:ss.ffff ";
+               })
+               .AddEventLog();
+      });
+      this.logger = loggerFactory.CreateLogger<BtSqlBackupService>();
+      this.appDirectoryPath = Path.GetDirectoryName(System.Reflection.Assembly.GetEntryAssembly().Location);
+      this.sqlCommandsFilePath = Path.Combine(this.appDirectoryPath, "sql_commands.json");
+      this.sqlCommands = new List<SchedulableSQLCommand>();
+      this.scheduler = new StdSchedulerFactory().GetScheduler().GetAwaiter().GetResult();
     }
 
-    /// <summary>
-    /// Schedules the jobs found in the configuration file.
-    /// </summary>
     private async Task ScheduleJobs()
     {
-      foreach (SQLCommandJob cmd in this.sqlCommands)
+      foreach (var command in this.sqlCommands)
       {
-        this.trace.TraceInformation($"Creating and scheduling a new job from a `SQLCommandJob` type object (Name='{cmd.Name}').");
+        logger.LogInformation($"Scheduling job '{command.Name}'.");
 
-        JobDataMap jobData = new JobDataMap();
-        jobData.Add("sqlCommand", cmd);
-        jobData.Add("trace", this.trace);
+        var data = new JobDataMap();
+        data.Add("command", command);
+        data.Add("logger", this.logger);
 
-        JobBuilder sqlJobBuilder = JobBuilder
+        var jobBuilder = JobBuilder
         .Create<RunSqlCommandJob>()
-        .WithIdentity(cmd.Name, cmd.ConnectionString)
-        .WithDescription("Job builder pentru comenzi SQL pe MSSQL Server.")
-        .SetJobData(jobData);
+        .WithIdentity(command.Name, command.ConnectionString)
+        .WithDescription(command.Description)
+        .SetJobData(data);
 
-        IJobDetail sqlJobDetail = sqlJobBuilder.Build();
-        ITrigger sqlJobTrigger = TriggerBuilder.Create()
-        .WithIdentity(cmd.Name, cmd.ConnectionString)
-        .WithDescription(cmd.Description)
-        .WithCronSchedule(cmd.Cron)
+        var jobDetail = jobBuilder.Build();
+
+        var jobTrigger = TriggerBuilder.Create()
+        .WithIdentity(command.Name, command.ConnectionString)
+        .WithDescription(command.Description)
+        .WithCronSchedule(command.Cron)
         .StartNow()
         .Build();
 
-        await this.scheduler.ScheduleJob(sqlJobDetail, sqlJobTrigger);
+        await this.scheduler.ScheduleJob(jobDetail, jobTrigger);
       }
     }
 
-    private bool loadSettingsFromDisk()
+    /// <summary>
+    /// Load jobs from configuration file on disk.
+    /// </summary>
+    /// <returns>true if successful</returns>
+    private bool LoadJobs()
     {
-      var jsonSerializerOptions = new JsonSerializerOptions
+      logger.LogInformation($"Loading jobs from '{this.sqlCommandsFilePath}'.");
+
+      var serializerOptions = new JsonSerializerOptions
       {
         AllowTrailingCommas = true,
         WriteIndented = true,
@@ -93,26 +85,29 @@ namespace bt_sql_backup_service
 
       try
       {
-        this.trace.TraceInformation($"Se incarca setarile din fisierul {this.settingsFilePath}.");
-
-        this.sqlCommands.Clear();
-        var jsonString = File.ReadAllText(this.settingsFilePath);
-        this.sqlCommands.AddRange(JsonSerializer.Deserialize<SQLCommandJob[]>(jsonString, jsonSerializerOptions));
+        var json = File.ReadAllText(this.sqlCommandsFilePath);
+        var jobs = JsonSerializer.Deserialize<SchedulableSQLCommand[]>(json, serializerOptions);
+        this.sqlCommands.AddRange(jobs);
       }
       catch (System.Exception e)
       {
-        this.trace.TraceEvent(TraceEventType.Error, 0, $"Eroare la incarcarea setarilor: {e.Message}");
+        logger.LogError($"Failed to load jobs from '{this.sqlCommandsFilePath}': {e.Message}");
         return false;
       }
 
       return true;
     }
 
+    /// <summary>
+    /// Loads the jobs and starts the scheduler.
+    /// </summary>
+    /// <param name="hostControl"></param>
+    /// <returns>true if successful</returns>
     private async Task<bool> StartAsync(HostControl hostControl)
     {
-      this.trace.TraceInformation("Se porneste serviciul.");
-      if (!this.loadSettingsFromDisk())
+      if (!this.LoadJobs())
       {
+        // Failed to load jobs from disk so don't start the service.
         return false;
       }
       await this.ScheduleJobs();
@@ -120,28 +115,52 @@ namespace bt_sql_backup_service
       return true;
     }
 
+    /// <summary>
+    /// Starts the service.
+    /// </summary>
+    /// <param name="hostControl"></param>
+    /// <returns>true if started successfully</returns>
     public bool Start(HostControl hostControl)
     {
-      Task.Run<bool>(() => this.StartAsync(hostControl));
+      logger.LogInformation("Starting service.");
+
+      // Queue an async task to run on a thread pool, which loads necessary data
+      // and starts the scheduler. We don't wait here for this process to
+      // complete, because it can take longer than the service startup timeout,
+      // which could terminate the service before it can even start.
+      Task.Run(() => this.StartAsync(hostControl).ContinueWith((startTask) =>
+      {
+        if (!startTask.Result)
+        {
+          // Gracefully stop the service because we failed to start
+          // asynchronously.
+          this.Stop(hostControl);
+        }
+      }));
+
       return true;
     }
 
+    /// <summary>
+    /// Stops the scheduler.
+    /// </summary>
+    /// <param name="hostControl"></param>
+    /// <returns>Always true</returns>
     private async Task<bool> StopAsync(HostControl hostControl)
     {
-      this.trace.TraceInformation("Se opreste serviciul.");
       await scheduler.Shutdown();
       return true;
     }
 
+    /// <summary>
+    /// Stops the service.
+    /// </summary>
+    /// <param name="hostControl"></param>
+    /// <returns>true if stopped successfully</returns>
     public bool Stop(HostControl hostControl)
     {
-      var stopTask = this.StopAsync(hostControl);
-      return stopTask.GetAwaiter().GetResult();
-    }
-
-    public void Dispose()
-    {
-      this.trace.Close();
+      logger.LogInformation("Stopping service.");
+      return this.StopAsync(hostControl).GetAwaiter().GetResult();
     }
   }
 
@@ -149,20 +168,18 @@ namespace bt_sql_backup_service
   {
     public static int Main(string[] args)
     {
-      int retValue = (int)HostFactory.Run(hostConfigurator =>
+      return (int)HostFactory.Run(hostConfigurator =>
          {
            hostConfigurator.Service<BtSqlBackupService>();
            hostConfigurator.RunAsNetworkService();
            hostConfigurator.StartAutomatically();
-           hostConfigurator.SetStartTimeout(TimeSpan.FromSeconds(60));
+           hostConfigurator.SetStartTimeout(TimeSpan.FromSeconds(30));
            hostConfigurator.SetDisplayName(Constants.displayName);
            hostConfigurator.SetServiceName(Constants.serviceName);
            hostConfigurator.SetDescription(Constants.description);
            hostConfigurator.EnableServiceRecovery(action => action.RestartService(TimeSpan.FromSeconds(60)));
          }
       );
-
-      return retValue;
     }
   }
 }
