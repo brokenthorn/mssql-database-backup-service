@@ -1,9 +1,11 @@
 # bt_sql_backup_service
 
-A quick and dirty Windows Service replacement for [SQL Server Agent](https://en.wikipedia.org/wiki/SQL_Server_Agent).
+A quick and dirty Windows Service replacement for [SQL Server
+Agent](https://en.wikipedia.org/wiki/SQL_Server_Agent).
 
 I built this to monitor and automate database backups to local disk and cloud
-storage for on-premise servers running SQL Server Express edition, which doesn't have SQL Server Agent.
+storage for on-premise servers running SQL Server Express edition, which doesn't
+have SQL Server Agent.
 
 There are
 [other](https://www.mssqltips.com/sqlservertip/5830/how-to-schedule-sql-scripts-on-sql-server-express-edition/)
@@ -12,13 +14,17 @@ solutions out there but they seem very
 (no reporting, no notification, no auditing, no integration and not to mention,
 very hard to maintain).
 
-I plan to gradually add new functionality to this service over time. Check the TODO list below for more info.
+I plan to gradually add new functionality to this service over time. Check the
+TODO list below for more info.
 
 ## How to Build, Install and Use
 
 1. Clone this repository using Git or download a zipped version from GitHub.
-1. Install the [.Net Core 3.1 SDK](https://dotnet.microsoft.com/download/dotnet-core/3.1) if you don't have it already.
-1. Open a command line and navigate to the folder where the source code is and run:
+1. Install the [.Net Core 3.1
+   SDK](https://dotnet.microsoft.com/download/dotnet-core/3.1) if you don't have
+   it already.
+1. Open a command line and navigate to the folder where the source code is and
+   run:
 
    ```sh
    $dotnet publish -r win-x64 -c Release
@@ -33,8 +39,12 @@ I plan to gradually add new functionality to this service over time. Check the T
    $dotnet publish -r win-x64 -c Release /p:PublishSingleFile=true
    ```
 
-1. Move the generated EXE (and optional dependencies) to your folder of preference. There is no installer yet.
-1. Configure the SQL jobs by editing `sql_commands.json`.
+1. Move the generated EXE (and optional dependencies) to your folder of
+   preference. There is no installer yet.
+1. Make sure you also create a `sql_commands.json` file in
+   the same folder as the service EXE.
+1. Set up SQL command jobs by editing `sql_commands.json`. There is an example
+   file provided in this repository.
 1. Install and start the service by running
 
    ```sh
@@ -42,19 +52,25 @@ I plan to gradually add new functionality to this service over time. Check the T
    $bt_sql_backup_service.exe start
    ```
 
-1. Check Windows Event Viewer for log messages from the service or any errors.
+1. Check Windows Event Viewer for log messages from the service and any errors.
    You can also run the service executable from the command line and see log
    messages outputted directly to the console by just calling the executable
    with no arguments.
 
 More command line arguments are available. Read the
-[Topshelf](http://topshelf-project.com/) project documentation.
+[Topshelf](http://topshelf-project.com/) project documentation for more info.
+For example, you can install multiple instances of this service by passing
+certain command line arguments when installing the service. Make sure you
+install the service from different folder if you do this, so they don't all load
+the same settings and jobs.
 
 ## The `sql_commands.json` file
 
-This file contains a list of `SchedulableSqlCommands`. The service will read this file on startup and load any commands defined there as jobs to schedule and execute.
+This file contains a list of `SchedulableSqlCommands`. The service will read
+this file on startup and load any commands defined there as jobs to schedule and
+execute.
 
-An example file is provided which looks like this:
+An example file is provided which should be self-explanatory:
 
 ```json
 [
@@ -77,15 +93,22 @@ An example file is provided which looks like this:
 ]
 ```
 
-This file assumes you have [Ola's `DatabaseBackup`](https://ola.hallengren.com/sql-server-backup.html) script installed on the `master` database and a SQL server installed and running on the same machine as the service itself. It assumes a custom SQL Server TCP port value of 1443.
+In case you yet understand what this file does: this assumes you have [Ola's
+`DatabaseBackup`](https://ola.hallengren.com/sql-server-backup.html) script
+installed on the `master` database and a SQL Server instance installed and
+running on the same machine as the service.
 
-What this configuration essentially does is schedule a job for a full backup of all user databases everyday at 3 AM and a job for differential backups of all user databases every 2 hours starting from 10 AM up until 8 PM including (assuming those are working hours, when the database gets new data added).
+What this configuration essentially does is schedule a job for a full backup of
+all user databases everyday at 3 AM and a job for differential backups of all
+user databases every 2 hours starting from 10 AM up until 8 PM including
+(assuming those are working hours, when the database gets new data added).
 
 ## TODO
 
 - [x] Run SQL scripts on a CRON schedule.
 - [ ] Email notifications.
-- [ ] Option to backup to Azure Blob Storage directly (as opposed to SQL Server doing that).
+- [ ] Option to backup to Azure Blob Storage directly (as opposed to SQL Server
+      doing that).
 - [ ] Option to sync local backups to Azure Blob Storage or Azure File Shares in
       order to preserve backup LSN chain and not have to run the same backup
       twice.
