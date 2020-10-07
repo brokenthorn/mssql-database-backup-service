@@ -5,7 +5,8 @@
     "connectionString": "Server=127.0.0.1,1443;Connection Timeout=10;Database=master;User Id=USERNAME;Password=PASSWORD",
     "sqlCommand": "EXECUTE [master].[dbo].[DatabaseBackup] @Databases = 'USER_DATABASES', @Directory = N'D:\\sqlbackups', @BackupType = 'FULL', @CleanupTime = 24, @CopyOnly = 'N', @MaxTransferSize = 4194304, @BufferCount = 25, @Compress = 'N', @CheckSum = 'Y', @Verify = 'N', @LogToTable = 'Y';",
     "commandTimeout": 10800,
-    "cron": "0 0 3 ? * * *"
+    "cron": "0/10 * * ? * * *",
+    "notifyEmails": "sebastian@minifarm.ro;it@minifarm.ro"
   },
   {
     "name": "Diff backup of user databases",
@@ -13,6 +14,7 @@
     "connectionString": "Server=127.0.0.1,1443;Connection Timeout=10;Database=master;User Id=USERNAME;Password=PASSWORD",
     "sqlCommand": "EXECUTE [master].[dbo].[DatabaseBackup] @Databases = 'USER_DATABASES', @Directory = N'D:\\sqlbackups', @BackupType = 'DIFF', @CleanupTime = 24, @CopyOnly = 'N', @MaxTransferSize = 4194304, @BufferCount = 25, @Compress = 'N', @CheckSum = 'Y', @Verify = 'N', @LogToTable = 'Y';",
     "commandTimeout": 10800,
-    "cron": "0 0 10,12,14,16,18,20 ? * * *"
+    "cron": "0 0 10,12,14,16,18,20 ? * * *",
+    "notifyEmails": "sebastian@minifarm.ro"
   }
 ]

@@ -1,3 +1,6 @@
+# appsettings.json file used only during Development
+/appsettings.Development.json
+
 # Files created by app during run time:
 /*.log.txt
 /*.log.csv

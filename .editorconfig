@@ -1,6 +1,6 @@
 root = true
 
-[*.{cs,vb}]
+[*.*]
 tab_width = 2
 indent_size = 2
 indent_style = space

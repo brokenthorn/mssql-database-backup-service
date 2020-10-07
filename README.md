@@ -45,6 +45,9 @@ TODO list below for more info.
    the same folder as the service EXE.
 1. Set up SQL command jobs by editing `sql_commands.json`. There is an example
    file provided in this repository.
+1. Customize the `SmtpClientSettings` section of the config in the `appsettings.json` file.
+   `AdminEmail` is the email address to which to send notifications of errors and other
+   information that occurs outside of jobs (like when the service is started or stopped).
 1. Install and start the service by running
 
    ```sh
@@ -66,7 +69,7 @@ the same settings and jobs.
 
 ## The `sql_commands.json` file
 
-This file contains a list of `SchedulableSqlCommands`. The service will read
+This file contains a list of `SqlCommandEntity`. The service will read
 this file on startup and load any commands defined there as jobs to schedule and
 execute.
 
@@ -106,7 +109,7 @@ user databases every 2 hours starting from 10 AM up until 8 PM including
 ## TODO
 
 - [x] Run SQL scripts on a CRON schedule.
-- [ ] Email notifications.
+- [x] Email notifications.
 - [ ] Option to backup to Azure Blob Storage directly (as opposed to SQL Server
       doing that).
 - [ ] Option to sync local backups to Azure Blob Storage or Azure File Shares in
